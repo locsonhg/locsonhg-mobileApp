@@ -71,12 +71,19 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     };
   }, [showControls, isLoading, isPlaying, isLocked]);
 
-  // Start playing on mount
+  // Handle videoUrl change: reset position and auto-play
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playAsync();
-    }
-  }, []);
+    const resetAndPlay = async () => {
+      setIsLoading(true);
+      setPosition(0);
+      setDuration(0);
+      if (videoRef.current) {
+        await videoRef.current.setPositionAsync(0);
+        await videoRef.current.playAsync();
+      }
+    };
+    resetAndPlay();
+  }, [videoUrl]);
 
   const hideControls = () => {
     if (isLocked) return;
@@ -190,6 +197,7 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         source={{ uri: videoUrl }}
         style={isFullscreen ? styles.fullscreenVideo : { width: windowWidth, height: videoHeight }}
         resizeMode={isFullscreen ? ResizeMode.STRETCH : ResizeMode.CONTAIN}
+        shouldPlay={true}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         useNativeControls={false}
       />
@@ -292,15 +300,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
   fullscreenContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
     zIndex: 99999,
     elevation: 99999,
   },
   video: {
     backgroundColor: "#000",
+  },
+  normalBackButton: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : 20,
+    left: spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 100,
   },
   fullscreenVideo: {
     flex: 1,

@@ -31,7 +31,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   currentEpisodeIndex = 0,
   movieTitle = "",
 }) => {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(currentEpisodeIndex);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(videoUrl);
 
