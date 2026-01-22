@@ -8,6 +8,7 @@ import {
   ScrollView,
   Animated,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useTranslation } from "react-i18next";
@@ -31,40 +32,23 @@ const HomeScreen: React.FC = () => {
 
   // Fetch movies by categories
   const { data: phimBoData } = useMovieList("phim-bo", {
-    page: 1,
-    limit: 10,
-    sort_field: "modified.time",
-    sort_type: "desc",
+    page: 1, limit: 10, sort_field: "modified.time", sort_type: "desc",
   });
   const { data: phimLeData } = useMovieList("phim-le", {
-    page: 1,
-    limit: 10,
-    sort_field: "modified.time",
-    sort_type: "desc",
+    page: 1, limit: 10, sort_field: "modified.time", sort_type: "desc",
   });
   const { data: hoatHinhData } = useMovieList("hoat-hinh", {
-    page: 1,
-    limit: 10,
-    sort_field: "modified.time",
-    sort_type: "desc",
+    page: 1, limit: 10, sort_field: "modified.time", sort_type: "desc",
   });
   const { data: phimChieuRapData } = useMovieList("phim-chieu-rap", {
-    page: 1,
-    limit: 10,
-    sort_field: "modified.time",
-    sort_type: "desc",
+    page: 1, limit: 10, sort_field: "modified.time", sort_type: "desc",
   });
   const { data: tvShowsData } = useMovieList("tv-shows", {
-    page: 1,
-    limit: 10,
-    sort_field: "modified.time",
-    sort_type: "desc",
+    page: 1, limit: 10, sort_field: "modified.time", sort_type: "desc",
   });
 
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerOpacity = useRef(new Animated.Value(0)).current;
-  const headerTranslateY = useRef(new Animated.Value(-100)).current;
 
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -72,27 +56,26 @@ const HomeScreen: React.FC = () => {
       useNativeDriver: false,
       listener: (event: any) => {
         const offsetY = event.nativeEvent.contentOffset.y;
-        const shouldShow = offsetY > 15;
-
-        if (shouldShow !== showStickyHeader) {
-          setShowStickyHeader(shouldShow);
-
-          Animated.parallel([
-            Animated.timing(headerOpacity, {
-              toValue: shouldShow ? 1 : 0,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-            Animated.timing(headerTranslateY, {
-              toValue: shouldShow ? 0 : -100,
-              duration: 200,
-              useNativeDriver: true,
-            }),
-          ]).start();
+        if (offsetY > 100 && !showStickyHeader) {
+          setShowStickyHeader(true);
+        } else if (offsetY <= 100 && showStickyHeader) {
+          setShowStickyHeader(false);
         }
       },
     },
   );
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [-10, 0],
+    extrapolate: "clamp",
+  });
 
   const handleMoviePress = (slug: string) => {
     navigation.navigate("Detail", { slug });
@@ -103,18 +86,17 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleSeeAll = (category: string) => {
-    // Navigate to Categories tab with specific category
+    // Navigate to Categories tab
+    // We can't easily switch tabs and set state in another tab without a global state 
+    // or passing params, but for now we'll just log
     console.log("See all:", category);
-    // TODO: Implement navigation to category list
   };
 
   if (isLoading) return <Loading />;
 
   if (error || !homeData) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.colors.background }]}
-      >
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <Text style={[styles.errorText, { color: theme.colors.error }]}>
           {t("common.error")}
         </Text>
@@ -122,11 +104,7 @@ const HomeScreen: React.FC = () => {
     );
   }
 
-  const renderMovieSection = (
-    title: string,
-    movies: MovieItem[],
-    sectionSlug?: string,
-  ) => (
+  const renderMovieSection = (title: string, movies: MovieItem[], sectionSlug?: string) => (
     <View style={styles.section}>
       <SectionHeader
         title={title}
@@ -145,49 +123,44 @@ const HomeScreen: React.FC = () => {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.horizontalList}
-        initialNumToRender={5}
-        maxToRenderPerBatch={5}
-        windowSize={5}
       />
     </View>
   );
 
   return (
-    <View
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-    >
-      {/* Sticky Header - Animated smooth transition */}
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Dynamic Header */}
       <Animated.View
         style={[
-          styles.stickyHeader,
+          styles.header,
           {
-            backgroundColor: theme.colors.background,
+            backgroundColor: themeMode === 'dark' ? 'rgba(10, 10, 10, 0.85)' : 'rgba(255, 255, 255, 0.9)',
             opacity: headerOpacity,
             transform: [{ translateY: headerTranslateY }],
           },
         ]}
-        pointerEvents={showStickyHeader ? "auto" : "none"}
       >
-        <Text style={styles.logo}>LS</Text>
-        <TouchableOpacity
-          style={[styles.searchBar, { backgroundColor: theme.colors.card }]}
-          onPress={handleSearchPress}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.searchPlaceholder,
-              { color: theme.colors.textSecondary },
-            ]}
+        <Text style={[styles.logoText, { color: theme.colors.primary }]}>
+          LOCSONHG
+        </Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.headerIcon, { backgroundColor: theme.colors.card }]}
+            onPress={handleSearchPress}
           >
-            🔍 Tìm phim...
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={toggleTheme} style={styles.vipButton}>
-          <Text style={styles.vipButtonText}>
-            {themeMode === "light" ? "🌙" : "☀️"}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons name="search" size={20} color={theme.colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.headerIcon, { backgroundColor: theme.colors.card }]}
+            onPress={toggleTheme}
+          >
+            <Ionicons 
+              name={themeMode === 'dark' ? "sunny" : "moon"} 
+              size={20} 
+              color={theme.colors.text} 
+            />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
 
       <Animated.ScrollView
@@ -196,74 +169,58 @@ const HomeScreen: React.FC = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {/* Header Overlay - On top of carousel with dark background */}
-        <View style={styles.carouselWrapper}>
+        {/* Hero Section */}
+        <View style={styles.heroWrapper}>
           {homeData.items && homeData.items.length > 0 && (
             <HeroCarousel
-              movies={homeData.items.slice(0, 5)}
+              movies={homeData.items.slice(0, 8)}
               onPressMovie={handleMoviePress}
             />
           )}
-          {!showStickyHeader && (
-            <View style={styles.headerOverlay}>
-              <Text style={styles.logo}>LS</Text>
-              <TouchableOpacity
-                style={[
-                  styles.searchBar,
-                  { backgroundColor: "rgba(0, 0, 0, 0.6)" },
-                ]}
-                onPress={handleSearchPress}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.searchPlaceholder}>🔍 Tìm phim...</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleTheme} style={styles.vipButton}>
-                <Text style={styles.vipButtonText}>
-                  {themeMode === "light" ? "🌙" : "☀️"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          
+          {/* Logo overlay when header is hidden */}
+          <View style={styles.heroOverlay}>
+            <Text style={styles.heroLogoText}>
+              LOCSONHG
+            </Text>
+            <TouchableOpacity 
+              style={styles.heroSearch}
+              onPress={handleSearchPress}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="search" size={20} color="#fff" />
+              <Text style={styles.heroSearchPlaceholder}>Tìm kiếm phim...</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-        {/* Movie Sections */}
-        {homeData.items && homeData.items.length > 0 && (
-          <>
-            {renderMovieSection(
-              "Phim Hot",
-              homeData.items.slice(0, 10),
-              "phim-moi",
-            )}
-            {renderMovieSection(
-              "Phim Mới Cập Nhật",
-              homeData.items.slice(10, 20),
-              "phim-moi",
-            )}
-          </>
-        )}
 
-        {phimBoData?.items &&
-          phimBoData.items.length > 0 &&
-          renderMovieSection("Phim Bộ", phimBoData.items, "phim-bo")}
-
-        {phimLeData?.items &&
-          phimLeData.items.length > 0 &&
-          renderMovieSection("Phim Lẻ", phimLeData.items, "phim-le")}
-
-        {hoatHinhData?.items &&
-          hoatHinhData.items.length > 0 &&
-          renderMovieSection("Phim Hoạt Hình", hoatHinhData.items, "hoat-hinh")}
-
-        {phimChieuRapData?.items &&
-          phimChieuRapData.items.length > 0 &&
-          renderMovieSection(
-            "Phim Chiếu Rạp",
-            phimChieuRapData.items,
-            "phim-chieu-rap",
+        {/* Content */}
+        <View style={styles.content}>
+          {homeData.items && homeData.items.length > 0 && (
+            <>
+              {renderMovieSection(
+                "Phim Hot",
+                homeData.items.slice(0, 10),
+                "phim-moi",
+              )}
+            </>
           )}
 
-        {tvShowsData?.items &&
-          tvShowsData.items.length > 0 &&
-          renderMovieSection("TV Shows", tvShowsData.items, "tv-shows")}
+          {phimBoData?.items && phimBoData.items.length > 0 && 
+            renderMovieSection("Phim Bộ", phimBoData.items, "phim-bo")}
+
+          {phimLeData?.items && phimLeData.items.length > 0 && 
+            renderMovieSection("Phim Lẻ", phimLeData.items, "phim-le")}
+
+          {hoatHinhData?.items && hoatHinhData.items.length > 0 && 
+            renderMovieSection("Hoạt Hình", hoatHinhData.items, "hoat-hinh")}
+
+          {phimChieuRapData?.items && phimChieuRapData.items.length > 0 && 
+            renderMovieSection("Chiếu Rạp", phimChieuRapData.items, "phim-chieu-rap")}
+
+          {tvShowsData?.items && tvShowsData.items.length > 0 && 
+            renderMovieSection("TV Shows", tvShowsData.items, "tv-shows")}
+        </View>
       </Animated.ScrollView>
     </View>
   );
@@ -273,7 +230,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  stickyHeader: {
+  header: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -281,66 +238,89 @@ const styles = StyleSheet.create({
     zIndex: 100,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: 50,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: "900",
+    letterSpacing: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
     gap: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: "#333",
   },
-  carouselWrapper: {
-    position: "relative",
+  headerIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerOverlay: {
-    position: "absolute",
+  heroWrapper: {
+    position: 'relative',
+  },
+  heroOverlay: {
+    position: 'absolute',
     top: 50,
     left: 0,
     right: 0,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     zIndex: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-    gap: spacing.sm,
   },
-  logo: {
+  heroLogoText: {
+    color: '#fff',
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#00C853",
+    fontWeight: "900",
+    letterSpacing: 1,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  searchBar: {
-    flex: 1,
-    height: 36,
-    borderRadius: 18,
+  heroSearch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     paddingHorizontal: spacing.md,
-    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    minWidth: 150,
   },
-  searchPlaceholder: {
-    fontSize: 14,
-    color: "#ccc",
-  },
-  vipButton: {
-    width: 40,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 193, 7, 0.9)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  vipButtonText: {
-    fontSize: 20,
+  heroSearchPlaceholder: {
+    color: '#fff',
+    fontSize: 13,
+    marginLeft: spacing.xs,
+    fontWeight: '500',
   },
   scrollContent: {
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  content: {
+    marginTop: -20, // Negative margin to overlap with hero gradient
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: spacing.md,
   },
   section: {
-    marginTop: spacing.md,
+    marginBottom: spacing.lg,
   },
   horizontalList: {
     paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
   },
   errorText: {
     fontSize: 16,
     textAlign: "center",
+    marginTop: 100,
   },
 });
 

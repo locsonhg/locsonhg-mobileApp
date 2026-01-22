@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -20,6 +20,8 @@ import { RootStackParamList } from "../types";
 import { MovieItem } from "../types/ophim";
 import { OPHIM_CONFIG } from "../constants/ophim";
 import { spacing, borderRadius } from "../theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 
 type SearchScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -28,6 +30,7 @@ type SearchScreenNavigationProp = StackNavigationProp<
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = (SCREEN_WIDTH - spacing.md * 3) / 2;
+const RECENT_SEARCH_KEY = "recent_searches";
 
 const SearchScreen: React.FC = () => {
   const { t } = useTranslation();
@@ -36,9 +39,48 @@ const SearchScreen: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [recentMovies, setRecentMovies] = useState<MovieItem[]>([]);
+
+  // Load recent searches
+  useEffect(() => {
+    loadRecentSearches();
+  }, []);
+
+  const loadRecentSearches = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(RECENT_SEARCH_KEY);
+      if (saved) {
+        setRecentMovies(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error("Failed to load search history", e);
+    }
+  };
+
+  const saveRecentMovie = async (movie: MovieItem) => {
+    try {
+      const updated = [
+        movie,
+        ...recentMovies.filter((m) => m._id !== movie._id),
+      ].slice(0, 10);
+      setRecentMovies(updated);
+      await AsyncStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error("Failed to save search history", e);
+    }
+  };
+
+  const clearHistory = async () => {
+    try {
+      await AsyncStorage.removeItem(RECENT_SEARCH_KEY);
+      setRecentMovies([]);
+    } catch (e) {
+      console.error("Failed to clear search history", e);
+    }
+  };
 
   // Debounce search
-  const debounceTimeout = React.useRef<NodeJS.Timeout>();
+  const debounceTimeout = React.useRef<NodeJS.Timeout | undefined>(undefined);
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
@@ -56,8 +98,9 @@ const SearchScreen: React.FC = () => {
     keyword: debouncedQuery,
   });
 
-  const handleMoviePress = (slug: string) => {
-    navigation.navigate("Detail", { slug });
+  const handleMoviePress = (movie: MovieItem) => {
+    saveRecentMovie(movie);
+    navigation.navigate("Detail", { slug: movie.slug });
   };
 
   const handleBack = () => {
@@ -85,7 +128,7 @@ const SearchScreen: React.FC = () => {
           { backgroundColor: theme.colors.card },
           isLeftColumn ? styles.leftCard : styles.rightCard,
         ]}
-        onPress={() => handleMoviePress(item.slug)}
+        onPress={() => handleMoviePress(item)}
         activeOpacity={0.7}
       >
         <View style={styles.posterContainer}>
@@ -161,24 +204,59 @@ const SearchScreen: React.FC = () => {
     );
   };
 
+  const renderRecentSection = () => {
+    if (recentMovies.length === 0) return renderPlaceholderState();
+
+    return (
+      <View style={styles.recentContainer}>
+        <View style={styles.recentHeader}>
+          <Text style={[styles.recentTitle, { color: theme.colors.text }]}>
+            Gần đây
+          </Text>
+          <TouchableOpacity 
+            onPress={clearHistory}
+            style={styles.clearHistoryButton}
+          >
+            <Ionicons name="trash-outline" size={16} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.primary, fontWeight: "600", marginLeft: 4 }}>
+              Xóa lịch sử
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={recentMovies}
+          renderItem={renderMovieItem}
+          keyExtractor={(item) => `recent-${item._id}`}
+          numColumns={2}
+          scrollEnabled={false}
+          columnWrapperStyle={styles.columnWrapper}
+        />
+      </View>
+    );
+  };
+
+  const renderPlaceholderState = () => (
+    <View style={styles.emptyState}>
+      <Ionicons
+        name="search-outline"
+        size={64}
+        color={theme.colors.textSecondary}
+        style={{ opacity: 0.3 }}
+      />
+      <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+        Tìm kiếm phim
+      </Text>
+      <Text
+        style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}
+      >
+        Nhập tên phim để tìm kiếm
+      </Text>
+    </View>
+  );
+
   const renderEmptyState = () => {
     if (searchQuery.length === 0) {
-      return (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🔍</Text>
-          <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-            Tìm kiếm phim
-          </Text>
-          <Text
-            style={[
-              styles.emptySubtitle,
-              { color: theme.colors.textSecondary },
-            ]}
-          >
-            Nhập tên phim để tìm kiếm
-          </Text>
-        </View>
-      );
+      return renderRecentSection();
     }
 
     if (searchQuery.length < 2) {
@@ -199,15 +277,17 @@ const SearchScreen: React.FC = () => {
     if (!isLoading && data?.items.length === 0) {
       return (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>😕</Text>
+          <Ionicons
+            name="alert-circle-outline"
+            size={64}
+            color={theme.colors.textSecondary}
+            style={{ opacity: 0.3 }}
+          />
           <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
             Không tìm thấy kết quả
           </Text>
           <Text
-            style={[
-              styles.emptySubtitle,
-              { color: theme.colors.textSecondary },
-            ]}
+            style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}
           >
             Thử tìm kiếm với từ khóa khác
           </Text>
@@ -217,6 +297,7 @@ const SearchScreen: React.FC = () => {
 
     return null;
   };
+
 
   return (
     <SafeAreaView
@@ -474,6 +555,28 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 14,
     textAlign: "center",
+  },
+  recentContainer: {
+    flex: 1,
+  },
+  recentHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    marginTop: spacing.sm,
+  },
+  recentTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  clearHistoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(229, 9, 20, 0.1)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
 });
 
