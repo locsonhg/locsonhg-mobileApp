@@ -39,35 +39,37 @@ const EpisodesList: React.FC<EpisodesListProps> = ({
   useEffect(() => {
     if (currentEpisodeIndex !== undefined && isActiveTab && parentScrollViewRef?.current && containerRef.current) {
       const timer = setTimeout(() => {
-        // Measure the container position in the parent ScrollView
-        containerRef.current?.measureLayout(
-          parentScrollViewRef.current as any,
-          (x, y) => {
-            // Calculate position to center episode in viewport
-            const ITEM_HEIGHT = 122;
-            const episodeOffset = ITEM_HEIGHT * currentEpisodeIndex;
-            const SCREEN_HEIGHT = Dimensions.get('window').height;
-            const VIDEO_HEIGHT = 225; // Video player height
-            const TABS_HEIGHT = 50; // Tabs height
-            
-            // Center the episode in the visible area
-            // Visible area starts after video + tabs
-            const visibleAreaHeight = SCREEN_HEIGHT - VIDEO_HEIGHT - TABS_HEIGHT;
-            const centerOffset = visibleAreaHeight / 2 - ITEM_HEIGHT / 2;
-            
-            // Total offset = container position + episode position - center offset
-            const totalOffset = y + episodeOffset - centerOffset;
-            
-            parentScrollViewRef.current?.scrollTo({
-              y: Math.max(0, totalOffset),
-              animated: true,
-            });
-          },
-          () => {
-            // Handle layout measurement failure silently
-          }
-        );
-      }, 300); // Reduced delay for faster response
+        // Use requestAnimationFrame for smoother animation timing
+        requestAnimationFrame(() => {
+          // Measure the container position in the parent ScrollView
+          containerRef.current?.measureLayout(
+            parentScrollViewRef.current as any,
+            (x, y) => {
+              // Calculate position to center episode in viewport
+              const ITEM_HEIGHT = 122;
+              const episodeOffset = ITEM_HEIGHT * currentEpisodeIndex;
+              const SCREEN_HEIGHT = Dimensions.get('window').height;
+              const VIDEO_HEIGHT = 225; // Video player height
+              const TABS_HEIGHT = 50; // Tabs height
+              
+              // Center the episode in the visible area
+              const visibleAreaHeight = SCREEN_HEIGHT - VIDEO_HEIGHT - TABS_HEIGHT;
+              const centerOffset = visibleAreaHeight / 2 - ITEM_HEIGHT / 2;
+              
+              // Total offset = container position + episode position - center offset
+              const totalOffset = y + episodeOffset - centerOffset;
+              
+              parentScrollViewRef.current?.scrollTo({
+                y: Math.max(0, totalOffset),
+                animated: true,
+              });
+            },
+            () => {
+              // Handle layout measurement failure silently
+            }
+          );
+        });
+      }, 500); // Increased delay to let tab content render fully
 
       return () => clearTimeout(timer);
     }
