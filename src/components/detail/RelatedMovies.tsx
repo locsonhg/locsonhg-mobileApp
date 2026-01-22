@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   movieInfo: {
     padding: spacing.sm,
     paddingBottom: spacing.sm,
+    height: 65, // Fixed height for info area
   },
   movieTitle: {
     fontSize: 14,
@@ -238,6 +239,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 4,
     letterSpacing: -0.2,
+    height: 36, // Exactly 2 lines (18 * 2)
   },
   movieMeta: {
     flexDirection: "row",
@@ -246,6 +248,7 @@ const styles = StyleSheet.create({
   movieEpisode: {
     fontSize: 11,
     fontWeight: "500",
+    flex: 1, // Allow taking space
   },
   metaDot: {
     fontSize: 11,

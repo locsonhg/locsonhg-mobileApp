@@ -79,7 +79,7 @@ const DetailScreen: React.FC = () => {
   };
 
   const handleMoviePress = (movieSlug: string) => {
-    navigation.push("Detail", { slug: movieSlug });
+    navigation.replace("Detail", { slug: movieSlug });
   };
 
   if (isLoading) return <Loading />;
