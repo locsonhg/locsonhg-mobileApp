@@ -189,7 +189,7 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         ref={videoRef}
         source={{ uri: videoUrl }}
         style={isFullscreen ? styles.fullscreenVideo : { width: windowWidth, height: videoHeight }}
-        resizeMode={ResizeMode.CONTAIN}
+        resizeMode={isFullscreen ? ResizeMode.STRETCH : ResizeMode.CONTAIN}
         onPlaybackStatusUpdate={onPlaybackStatusUpdate}
         useNativeControls={false}
       />
@@ -214,91 +214,73 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
           style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
           pointerEvents="box-none"
         >
-          {/* Lock button - always visible, left side */}
-          <TouchableOpacity
-            style={[styles.lockButton, isFullscreen && { top: "50%", marginTop: -25 }]}
-            onPress={toggleLock}
-          >
-            <MaterialIcons
-              name={isLocked ? "lock" : "lock-open"}
-              size={24}
-              color="#fff"
-            />
-          </TouchableOpacity>
+          {/* Top Bar - Only in Fullscreen */}
+          {isFullscreen && (
+            <View style={styles.topBar}>
+              <TouchableOpacity onPress={toggleFullscreen} style={styles.iconButton}>
+                <MaterialIcons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.videoTitle} numberOfLines={1}>{title || "Đang xem"}</Text>
+            </View>
+          )}
 
-          {/* Main Controls - centered, hidden when locked */}
+          {/* Center Controls - spread out */}
           {!isLocked && (
             <View style={styles.centerControls}>
-              {/* Replay 10s */}
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={seekBackward}
-              >
-                <MaterialIcons name="replay-10" size={28} color="#fff" />
+              <TouchableOpacity style={styles.controlButton} onPress={seekBackward}>
+                <MaterialIcons name="replay-10" size={32} color="#fff" />
               </TouchableOpacity>
 
-              {/* Play/Pause - larger */}
-              <TouchableOpacity
-                style={styles.playPauseButton}
-                onPress={togglePlayPause}
-              >
-                <MaterialIcons
-                  name={isPlaying ? "pause" : "play-arrow"}
-                  size={40}
-                  color="#fff"
-                />
+              <TouchableOpacity style={styles.playPauseButton} onPress={togglePlayPause}>
+                <MaterialIcons name={isPlaying ? "pause" : "play-arrow"} size={48} color="#fff" />
               </TouchableOpacity>
 
-              {/* Forward 10s */}
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={seekForward}
-              >
-                <MaterialIcons name="forward-10" size={28} color="#fff" />
+              <TouchableOpacity style={styles.controlButton} onPress={seekForward}>
+                <MaterialIcons name="forward-10" size={32} color="#fff" />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Bottom Controls - only when not locked */}
-          {!isLocked && (
-            <View style={[styles.bottomControls, isFullscreen && { bottom: 30 }]}>
-              {/* Time & Progress */}
-              <View style={styles.progressRow}>
-                <Text style={styles.timeText}>
-                  {formatTime(position)}/{formatTime(duration)}
-                </Text>
-              </View>
+          {/* Bottom Bar Controls */}
+          <View style={[styles.bottomControls, isFullscreen && styles.bottomControlsFS]}>
+            <View style={styles.bottomRow}>
+              {/* Lock Button - Bottom Left */}
+              <TouchableOpacity style={styles.smallIconButton} onPress={toggleLock}>
+                <MaterialIcons name={isLocked ? "lock" : "lock-open"} size={22} color="#fff" />
+              </TouchableOpacity>
 
-              {/* Progress Bar */}
-              <View style={styles.progressBarContainer}>
-                <Slider
-                  style={styles.progressBar}
-                  value={position}
-                  minimumValue={0}
-                  maximumValue={duration || 0}
-                  onSlidingStart={() => setIsSeeking(true)}
-                  onSlidingComplete={onSeek}
-                  minimumTrackTintColor="#fff"
-                  maximumTrackTintColor="rgba(255,255,255,0.2)"
-                  thumbTintColor="transparent"
-                />
-
-                {/* Right side icons */}
-                <View style={styles.rightIcons}>
-                  <TouchableOpacity
-                    style={styles.smallIconButton}
-                    onPress={toggleFullscreen}
-                  >
-                    <MaterialIcons 
-                      name={isFullscreen ? "fullscreen-exit" : "fullscreen"} 
-                      size={18} 
-                      color="#fff" 
-                    />
-                  </TouchableOpacity>
+              {/* Progress & Time */}
+              {!isLocked && (
+                <View style={styles.progressContainer}>
+                  <Slider
+                    style={styles.progressBar}
+                    value={position}
+                    minimumValue={0}
+                    maximumValue={duration || 0}
+                    onSlidingStart={() => setIsSeeking(true)}
+                    onSlidingComplete={onSeek}
+                    minimumTrackTintColor="#fff"
+                    maximumTrackTintColor="rgba(255,255,255,0.2)"
+                    thumbTintColor="#fff"
+                  />
+                  <Text style={styles.timeText}>
+                    {formatTime(position)} / {formatTime(duration)}
+                  </Text>
                 </View>
-              </View>
+              )}
+
+              {/* Fullscreen Toggle - Bottom Right */}
+              {!isLocked && (
+                <TouchableOpacity style={styles.smallIconButton} onPress={toggleFullscreen}>
+                  <MaterialIcons 
+                    name={isFullscreen ? "fullscreen-exit" : "fullscreen"} 
+                    size={24} 
+                    color="#fff" 
+                  />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
+          </View>
         </Animated.View>
       )}
     </View>
@@ -340,25 +322,32 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 5,
   },
-  lockButton: {
+  topBar: {
     position: "absolute",
-    left: spacing.lg,
-    top: "35%",
-    width: 50,
-    height: 50,
-    justifyContent: "center",
+    top: spacing.lg,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    zIndex: 100,
+  },
+  videoTitle: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: spacing.md,
+    flex: 1,
   },
   centerControls: {
     position: "absolute",
     top: "50%",
-    left: 0,
-    right: 0,
-    marginTop: -35,
+    left: "15%",
+    right: "15%",
+    marginTop: -40,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
-    gap: spacing.xl,
     zIndex: 100,
   },
   controlButton: {
@@ -368,49 +357,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   playPauseButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     justifyContent: "center",
     alignItems: "center",
   },
   bottomControls: {
     position: "absolute",
-    bottom: 0,
+    bottom: spacing.md,
     left: 0,
     right: 0,
-    paddingBottom: Platform.OS === "ios" ? 20 : 10,
   },
-  progressRow: {
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.xs,
+  bottomControlsFS: {
+    paddingHorizontal: spacing.lg,
+    bottom: spacing.xl,
+  },
+  bottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  progressContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  progressBar: {
+    flex: 1,
+    height: 40,
   },
   timeText: {
     fontSize: 12,
     color: "#fff",
     fontWeight: "500",
-  },
-  progressBarContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: spacing.md,
-  },
-  progressBar: {
-    flex: 1,
-    height: 3,
-    marginHorizontal: -8,
-  },
-  rightIcons: {
-    flexDirection: "row",
-    gap: spacing.sm,
-    marginLeft: spacing.sm,
+    minWidth: 80,
   },
   smallIconButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
+  },
+  iconButton: {
+    padding: spacing.xs,
   },
 });
 
