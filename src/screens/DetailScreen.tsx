@@ -75,8 +75,7 @@ const DetailScreen: React.FC = () => {
     if (episodeIndex !== undefined) {
       setSelectedEpisodeIndex(episodeIndex);
     }
-    // Scroll to top to show video player
-    scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+    // Don't scroll to top - let user stay at their current position
   };
 
   const handleMoviePress = (movieSlug: string) => {
@@ -123,6 +122,9 @@ const DetailScreen: React.FC = () => {
             movie={movie}
             imageUrl={imageUrl}
             onEpisodePress={handleEpisodePress}
+            currentEpisodeIndex={selectedEpisodeIndex}
+            isActiveTab={activeTab === "episodes"}
+            parentScrollViewRef={scrollViewRef}
           />
         );
 

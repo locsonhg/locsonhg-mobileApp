@@ -1,30 +1,32 @@
 {
   "expo": {
-    "name": "Movie App",
-    "slug": "movie-app",
+    "name": "Locsonhg",
+    "slug": "locsonhg",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "image": "./assets/logo.jpeg"
     },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.movieapp"
+      "bundleIdentifier": "com.locsonhg.movieapp"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.movieapp"
+      "package": "com.locsonhg.movieapp"
     },
     "web": {},
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-video"
     ]
   }
 }
