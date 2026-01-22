@@ -15,7 +15,7 @@ interface VideoPlayerProps {
   imageUrl: string;
   videoUrl: string;
   onBackPress: () => void;
-  episodes?: Array<{ name: string; slug: string; link_embed: string }>;
+  episodes?: Array<{ name: string; slug: string; link_embed: string; link_m3u8: string }>;
   currentEpisodeIndex?: number;
   movieTitle?: string;
 }
@@ -39,7 +39,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     setCurrentIndex(currentEpisodeIndex);
     if (episodes.length > 0 && episodes[currentEpisodeIndex]) {
-      setCurrentVideoUrl(episodes[currentEpisodeIndex].link_embed);
+      setCurrentVideoUrl(episodes[currentEpisodeIndex].link_m3u8 || episodes[currentEpisodeIndex].link_embed);
       setIsPlaying(true); // Auto play when episode changes
     }
   }, [currentEpisodeIndex, episodes]);
@@ -56,7 +56,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (currentIndex < episodes.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
-      setCurrentVideoUrl(episodes[nextIndex].link_embed);
+      setCurrentVideoUrl(episodes[nextIndex].link_m3u8 || episodes[nextIndex].link_embed);
     }
   };
 
@@ -64,7 +64,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (currentIndex > 0) {
       const prevIndex = currentIndex - 1;
       setCurrentIndex(prevIndex);
-      setCurrentVideoUrl(episodes[prevIndex].link_embed);
+      setCurrentVideoUrl(episodes[prevIndex].link_m3u8 || episodes[prevIndex].link_embed);
     }
   };
 

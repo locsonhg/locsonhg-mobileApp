@@ -102,6 +102,7 @@ const DetailScreen: React.FC = () => {
     : `${OPHIM_CONFIG.CDN_IMAGE_URL}/${movie.poster_url}`;
 
   const firstEpisodeLink =
+    movie.episodes?.[0]?.server_data?.[0]?.link_m3u8 ||
     movie.episodes?.[0]?.server_data?.[0]?.link_embed ||
     movie.trailer_url ||
     "";
@@ -112,6 +113,7 @@ const DetailScreen: React.FC = () => {
     name: ep.name,
     slug: ep.slug,
     link_embed: ep.link_embed,
+    link_m3u8: ep.link_m3u8,
   }));
 
   const renderTabContent = () => {

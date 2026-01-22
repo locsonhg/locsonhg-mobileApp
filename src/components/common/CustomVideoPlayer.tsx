@@ -9,14 +9,14 @@ import {
   StatusBar,
   Platform,
   Animated,
+  Modal,
 } from "react-native";
-import { WebView } from "react-native-webview";
-import { LinearGradient } from "expo-linear-gradient";
-import { useTranslation } from "react-i18next";
+import { Video, ResizeMode, AVPlaybackStatus } from "expo-av";
+import { MaterialIcons } from "@expo/vector-icons";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { spacing } from "../../theme";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const VIDEO_HEIGHT = SCREEN_WIDTH * 0.56; // 16:9 aspect ratio
+import Slider from "@react-native-community/slider";
+import { useWindowDimensions } from "react-native";
 
 interface CustomVideoPlayerProps {
   videoUrl: string;
@@ -32,19 +32,30 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
   videoUrl,
   onClose,
   onNextEpisode,
+  onPreviousEpisode,
   hasNextEpisode = false,
+  hasPreviousEpisode = false,
   title,
 }) => {
-  const { t } = useTranslation();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const videoHeight = windowWidth * 0.56; // 16:9 aspect ratio
+
+  const videoRef = useRef<Video>(null);
   const controlsOpacity = useRef(new Animated.Value(1)).current;
 
-  const [isLoading, setIsLoading] = useState(true);
   const [showControls, setShowControls] = useState(true);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [duration, setDuration] = useState(0);
+  const [position, setPosition] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const hideControlsTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-hide controls after 4 seconds
   useEffect(() => {
-    if (showControls && !isLoading) {
+    if (showControls && !isLoading && isPlaying && !isLocked) {
       if (hideControlsTimeout.current) {
         clearTimeout(hideControlsTimeout.current);
       }
@@ -58,12 +69,20 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         clearTimeout(hideControlsTimeout.current);
       }
     };
-  }, [showControls, isLoading]);
+  }, [showControls, isLoading, isPlaying, isLocked]);
+
+  // Start playing on mount
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playAsync();
+    }
+  }, []);
 
   const hideControls = () => {
+    if (isLocked) return;
     Animated.timing(controlsOpacity, {
       toValue: 0,
-      duration: 200,
+      duration: 300,
       useNativeDriver: true,
     }).start(() => setShowControls(false));
   };
@@ -72,12 +91,16 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     setShowControls(true);
     Animated.timing(controlsOpacity, {
       toValue: 1,
-      duration: 200,
+      duration: 300,
       useNativeDriver: true,
     }).start();
   };
 
   const toggleControls = () => {
+    if (isLocked) {
+      displayControls();
+      return;
+    }
     if (showControls) {
       hideControls();
     } else {
@@ -85,24 +108,90 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
     }
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar hidden />
+  const togglePlayPause = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+    }
+  };
 
-      {/* WebView for video */}
-      <WebView
+  const seekForward = async () => {
+    if (videoRef.current) {
+      const newPosition = Math.min(position + 10000, duration);
+      await videoRef.current.setPositionAsync(newPosition);
+    }
+  };
+
+  const seekBackward = async () => {
+    if (videoRef.current) {
+      const newPosition = Math.max(position - 10000, 0);
+      await videoRef.current.setPositionAsync(newPosition);
+    }
+  };
+
+  const toggleLock = () => {
+    setIsLocked(!isLocked);
+    if (!isLocked) {
+      displayControls();
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (isFullscreen) {
+      setIsFullscreen(false);
+      await ScreenOrientation.unlockAsync();
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    } else {
+      setIsFullscreen(true);
+      await ScreenOrientation.unlockAsync();
+      await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+    }
+  };
+
+  const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
+    if (status.isLoaded) {
+      setIsLoading(false);
+      setIsPlaying(status.isPlaying);
+      setDuration(status.durationMillis || 0);
+      if (!isSeeking) {
+        setPosition(status.positionMillis || 0);
+      }
+    } else if (status.error) {
+      setIsLoading(false);
+      console.error("Video error:", status.error);
+    }
+  };
+
+  const onSeek = async (value: number) => {
+    if (videoRef.current) {
+      setIsSeeking(true);
+      await videoRef.current.setPositionAsync(value);
+      setIsSeeking(false);
+    }
+  };
+
+  const formatTime = (millis: number) => {
+    const totalSeconds = Math.floor(millis / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <View style={isFullscreen ? [styles.fullscreenContainer, { width: windowWidth, height: windowHeight }] : [styles.container, { width: windowWidth, height: videoHeight }]}>
+      <StatusBar hidden={isFullscreen} />
+
+      {/* Video Player - SINGLE INSTANCE */}
+      <Video
+        ref={videoRef}
         source={{ uri: videoUrl }}
-        style={styles.video}
-        allowsFullscreenVideo
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        onLoadStart={() => setIsLoading(true)}
-        onLoadEnd={() => setIsLoading(false)}
-        onError={() => setIsLoading(false)}
-        javaScriptEnabled
-        domStorageEnabled
-        startInLoadingState
-        scalesPageToFit
+        style={isFullscreen ? styles.fullscreenVideo : { width: windowWidth, height: videoHeight }}
+        resizeMode={ResizeMode.CONTAIN}
+        onPlaybackStatusUpdate={onPlaybackStatusUpdate}
+        useNativeControls={false}
       />
 
       {/* Loading Indicator */}
@@ -112,35 +201,104 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
         </View>
       )}
 
-      {/* Controls Overlay - only when visible */}
+      {/* Tap to toggle controls */}
+      <TouchableOpacity
+        style={styles.fullScreenTap}
+        activeOpacity={1}
+        onPress={toggleControls}
+      />
+
+      {/* Controls Overlay */}
       {showControls && (
         <Animated.View
           style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+          pointerEvents="box-none"
         >
-          {/* Tap anywhere to hide controls */}
+          {/* Lock button - always visible, left side */}
           <TouchableOpacity
-            style={styles.fullScreenTap}
-            activeOpacity={1}
-            onPress={hideControls}
-          />
-
-          {/* Top Bar with Back Button */}
-          <LinearGradient
-            colors={["rgba(0,0,0,0.85)", "rgba(0,0,0,0.3)", "transparent"]}
-            style={styles.topGradient}
+            style={[styles.lockButton, isFullscreen && { top: "50%", marginTop: -25 }]}
+            onPress={toggleLock}
           >
-            <View style={styles.topBar}>
-              <TouchableOpacity style={styles.backButton} onPress={onClose}>
-                <Text style={styles.backIcon}>←</Text>
+            <MaterialIcons
+              name={isLocked ? "lock" : "lock-open"}
+              size={24}
+              color="#fff"
+            />
+          </TouchableOpacity>
+
+          {/* Main Controls - centered, hidden when locked */}
+          {!isLocked && (
+            <View style={styles.centerControls}>
+              {/* Replay 10s */}
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={seekBackward}
+              >
+                <MaterialIcons name="replay-10" size={28} color="#fff" />
               </TouchableOpacity>
 
-              {title && (
-                <Text style={styles.titleText} numberOfLines={1}>
-                  {title}
-                </Text>
-              )}
+              {/* Play/Pause - larger */}
+              <TouchableOpacity
+                style={styles.playPauseButton}
+                onPress={togglePlayPause}
+              >
+                <MaterialIcons
+                  name={isPlaying ? "pause" : "play-arrow"}
+                  size={40}
+                  color="#fff"
+                />
+              </TouchableOpacity>
+
+              {/* Forward 10s */}
+              <TouchableOpacity
+                style={styles.controlButton}
+                onPress={seekForward}
+              >
+                <MaterialIcons name="forward-10" size={28} color="#fff" />
+              </TouchableOpacity>
             </View>
-          </LinearGradient>
+          )}
+
+          {/* Bottom Controls - only when not locked */}
+          {!isLocked && (
+            <View style={[styles.bottomControls, isFullscreen && { bottom: 30 }]}>
+              {/* Time & Progress */}
+              <View style={styles.progressRow}>
+                <Text style={styles.timeText}>
+                  {formatTime(position)}/{formatTime(duration)}
+                </Text>
+              </View>
+
+              {/* Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <Slider
+                  style={styles.progressBar}
+                  value={position}
+                  minimumValue={0}
+                  maximumValue={duration || 0}
+                  onSlidingStart={() => setIsSeeking(true)}
+                  onSlidingComplete={onSeek}
+                  minimumTrackTintColor="#fff"
+                  maximumTrackTintColor="rgba(255,255,255,0.2)"
+                  thumbTintColor="transparent"
+                />
+
+                {/* Right side icons */}
+                <View style={styles.rightIcons}>
+                  <TouchableOpacity
+                    style={styles.smallIconButton}
+                    onPress={toggleFullscreen}
+                  >
+                    <MaterialIcons 
+                      name={isFullscreen ? "fullscreen-exit" : "fullscreen"} 
+                      size={18} 
+                      color="#fff" 
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
         </Animated.View>
       )}
     </View>
@@ -149,60 +307,110 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    width: SCREEN_WIDTH,
-    height: VIDEO_HEIGHT,
     backgroundColor: "#000",
   },
+  fullscreenContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    backgroundColor: "#000",
+    zIndex: 99999,
+    elevation: 99999,
+  },
   video: {
-    width: SCREEN_WIDTH,
-    height: VIDEO_HEIGHT,
+    backgroundColor: "#000",
+  },
+  fullscreenVideo: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 10,
+  },
+  fullScreenTap: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
   controlsOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 5,
   },
-  fullScreenTap: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  topGradient: {
+  lockButton: {
     position: "absolute",
-    top: 0,
+    left: spacing.lg,
+    top: "35%",
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  centerControls: {
+    position: "absolute",
+    top: "50%",
     left: 0,
     right: 0,
-    paddingTop: Platform.OS === "ios" ? 50 : 20,
-    paddingBottom: spacing.lg,
+    marginTop: -35,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.xl,
+    zIndex: 100,
   },
-  topBar: {
+  controlButton: {
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  playPauseButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomControls: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingBottom: Platform.OS === "ios" ? 20 : 10,
+  },
+  progressRow: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  timeText: {
+    fontSize: 12,
+    color: "#fff",
+    fontWeight: "500",
+  },
+  progressBarContainer: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,
   },
-  backButton: {
-    width: 44,
-    height: 44,
+  progressBar: {
+    flex: 1,
+    height: 3,
+    marginHorizontal: -8,
+  },
+  rightIcons: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginLeft: spacing.sm,
+  },
+  smallIconButton: {
+    width: 32,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    borderRadius: 22,
-  },
-  backIcon: {
-    fontSize: 28,
-    color: "#fff",
-    fontWeight: "600",
-  },
-  titleText: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#fff",
-    marginLeft: spacing.md,
   },
 });
 

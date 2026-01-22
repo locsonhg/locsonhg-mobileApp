@@ -27,7 +27,7 @@ const VideoPlayerScreen: React.FC = () => {
   // Update video URL when episode changes
   useEffect(() => {
     if (episodes.length > 0 && episodes[currentIndex]) {
-      setCurrentVideoUrl(episodes[currentIndex].link_embed);
+      setCurrentVideoUrl(episodes[currentIndex].link_m3u8 || episodes[currentIndex].link_embed);
     }
   }, [currentIndex, episodes]);
 

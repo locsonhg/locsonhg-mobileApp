@@ -1,4 +1,3 @@
-// TMDB API Types
 export interface Movie {
   id: number;
   title: string;
@@ -35,7 +34,6 @@ export interface MoviesResponse {
   total_results: number;
 }
 
-// Navigation Types
 export type RootStackParamList = {
   Main: undefined;
   Detail: { slug: string };
@@ -43,7 +41,7 @@ export type RootStackParamList = {
   VideoPlayer: {
     videoUrl: string;
     movieTitle: string;
-    episodes?: Array<{ name: string; slug: string; link_embed: string }>;
+    episodes?: Array<{ name: string; slug: string; link_embed: string, link_m3u8: string }>;
     currentEpisodeIndex?: number;
   };
 };
