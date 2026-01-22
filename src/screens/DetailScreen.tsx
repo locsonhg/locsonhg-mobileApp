@@ -192,7 +192,13 @@ const DetailScreen: React.FC = () => {
           ]}
         >
           <View
-            style={[styles.tabs, { borderBottomColor: theme.colors.border }]}
+            style={[
+              styles.tabs,
+              {
+                backgroundColor: theme.colors.background,
+                borderBottomColor: theme.colors.border,
+              },
+            ]}
           >
             <TouchableOpacity
               style={[
@@ -209,7 +215,7 @@ const DetailScreen: React.FC = () => {
                   {
                     color:
                       activeTab === "episodes"
-                        ? "#fff"
+                        ? theme.colors.text
                         : theme.colors.textSecondary,
                   },
                 ]}
@@ -232,7 +238,7 @@ const DetailScreen: React.FC = () => {
                   {
                     color:
                       activeTab === "info"
-                        ? "#fff"
+                        ? theme.colors.text
                         : theme.colors.textSecondary,
                   },
                 ]}
@@ -255,7 +261,7 @@ const DetailScreen: React.FC = () => {
                   {
                     color:
                       activeTab === "related"
-                        ? "#fff"
+                        ? theme.colors.text
                         : theme.colors.textSecondary,
                   },
                 ]}
@@ -322,9 +328,7 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: "row",
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
     marginHorizontal: spacing.md,
-    backgroundColor: "#000",
   },
   tab: {
     flex: 1,

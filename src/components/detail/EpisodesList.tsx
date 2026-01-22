@@ -82,6 +82,7 @@ const EpisodesList: React.FC<EpisodesListProps> = ({
       <TouchableOpacity
         style={[
           styles.episodeItem,
+          { backgroundColor: theme.colors.card },
           isCurrentEpisode && {
             backgroundColor: "rgba(220, 38, 38, 0.15)",
             borderWidth: 2,
@@ -232,7 +233,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: spacing.md,
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: borderRadius.medium,
     padding: spacing.sm,
   },

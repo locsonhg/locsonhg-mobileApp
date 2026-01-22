@@ -1,8 +1,9 @@
 import React from "react";
-import { Text } from "react-native";
+import { Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
 
 // Screens
 import CategoriesScreen from "../screens/CategoriesScreen";
@@ -10,13 +11,6 @@ import SearchScreen from "../screens/SearchScreen";
 import FavoritesScreen from "../screens/FavoritesScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import HomeScreen from "@/screens/HomeScreen";
-
-// Icons (using simple text for now, can replace with icon library later)
-const HomeIcon = () => <Text>🏠</Text>;
-const CategoryIcon = () => <Text>🎬</Text>;
-const SearchIcon = () => <Text>🔍</Text>;
-const HeartIcon = () => <Text>❤️</Text>;
-const ProfileIcon = () => <Text>👤</Text>;
 
 export type BottomTabParamList = {
   Home: undefined;
@@ -34,27 +28,57 @@ const BottomTabNavigator: React.FC = () => {
 
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
           backgroundColor: theme.colors.card,
-          borderTopColor: theme.colors.border,
+          borderTopColor: "rgba(255, 255, 255, 0.05)",
           borderTopWidth: 1,
+          height: Platform.OS === "ios" ? 88 : 65,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === "ios" ? 28 : 10,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "600",
+          fontSize: 10,
+          fontWeight: "700",
+          marginTop: -4,
         },
-      }}
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap;
+
+          switch (route.name) {
+            case "Home":
+              iconName = focused ? "home" : "home-outline";
+              break;
+            case "Categories":
+              iconName = focused ? "grid" : "grid-outline";
+              break;
+            case "Search":
+              iconName = focused ? "search" : "search-outline";
+              break;
+            case "Favorites":
+              iconName = focused ? "heart" : "heart-outline";
+              break;
+            case "Profile":
+              iconName = focused ? "person" : "person-outline";
+              break;
+            default:
+              iconName = "ellipse";
+          }
+
+          return <Ionicons name={iconName} size={22} color={color} />;
+        },
+      })}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
           tabBarLabel: t("tabs.home"),
-          tabBarIcon: HomeIcon,
         }}
       />
       <Tab.Screen
@@ -62,7 +86,6 @@ const BottomTabNavigator: React.FC = () => {
         component={CategoriesScreen}
         options={{
           tabBarLabel: t("tabs.categories"),
-          tabBarIcon: CategoryIcon,
         }}
       />
       <Tab.Screen
@@ -70,7 +93,6 @@ const BottomTabNavigator: React.FC = () => {
         component={SearchScreen}
         options={{
           tabBarLabel: t("tabs.search"),
-          tabBarIcon: SearchIcon,
         }}
       />
       <Tab.Screen
@@ -78,7 +100,6 @@ const BottomTabNavigator: React.FC = () => {
         component={FavoritesScreen}
         options={{
           tabBarLabel: t("tabs.favorites"),
-          tabBarIcon: HeartIcon,
         }}
       />
       <Tab.Screen
@@ -86,7 +107,6 @@ const BottomTabNavigator: React.FC = () => {
         component={ProfileScreen}
         options={{
           tabBarLabel: t("tabs.profile"),
-          tabBarIcon: ProfileIcon,
         }}
       />
     </Tab.Navigator>
@@ -94,3 +114,4 @@ const BottomTabNavigator: React.FC = () => {
 };
 
 export default BottomTabNavigator;
+

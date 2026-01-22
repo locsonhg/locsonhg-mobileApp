@@ -22,7 +22,7 @@ const MovieInfoSection: React.FC<MovieInfoSectionProps> = ({ movie }) => {
     .join(" | ");
 
   return (
-    <View style={styles.movieInfo}>
+    <View style={[styles.movieInfo, { borderBottomColor: theme.colors.border }]}>
       {/* Title */}
       <Text style={[styles.movieTitle, { color: theme.colors.text }]}>
         {movie.name}
@@ -44,7 +44,10 @@ const MovieInfoSection: React.FC<MovieInfoSectionProps> = ({ movie }) => {
         </View>
         {movie.content && (
           <TouchableOpacity
-            style={styles.descriptionToggle}
+            style={[
+              styles.descriptionToggle,
+              { backgroundColor: theme.colors.card },
+            ]}
             onPress={() => setIsExpanded(!isExpanded)}
             activeOpacity={0.7}
           >
@@ -130,7 +133,6 @@ const styles = StyleSheet.create({
   movieInfo: {
     padding: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: "#222",
   },
   movieTitle: {
     fontSize: 20,
@@ -169,7 +171,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
     borderRadius: 4,
     gap: 4,
   },
