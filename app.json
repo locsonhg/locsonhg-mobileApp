@@ -5,17 +5,17 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff",
-      "image": "./assets/logo.jpeg"
+      "image": "./assets/splash.png"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.locsonhg.movieapp"
+      "bundleIdentifier": "com.locsonhg.movieapp",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,9 +24,12 @@
       "package": "com.locsonhg.movieapp"
     },
     "web": {},
-    "plugins": [
-      "expo-asset",
-      "expo-video"
-    ]
+    "plugins": ["expo-asset", "expo-video"],
+    "extra": {
+      "eas": {
+        "projectId": "d0fd05ab-d640-4b81-9914-bf665d4404ac"
+      }
+    },
+    "owner": "locsonhg2001"
   }
 }
